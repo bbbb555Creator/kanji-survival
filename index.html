@@ -102,67 +102,58 @@
     </div>
 
     <!-- AUDIO ASSETS -->
-    <!-- BGM -->
-    <audio id="bgm-title" loop><source src="openning.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage1" loop><source src="stage1.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage2" loop><source src="stage2.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage3" loop><source src="stage3.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage4" loop><source src="stage4.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage5" loop><source src="stage.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-ending" loop><source src="kuria.mp3" type="audio/mpeg"></audio>
+    <!-- BGM: 自分のリポジトリ内のファイルを指定 -->
+    <audio id="bgm-title" loop preload="auto"><source src="openning.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage1" loop preload="auto"><source src="stage1.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage2" loop preload="auto"><source src="stage2.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage3" loop preload="auto"><source src="stage3.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage4" loop preload="auto"><source src="stage4.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage5" loop preload="auto"><source src="stage.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-ending" loop preload="auto"><source src="kuria.mp3" type="audio/mpeg"></audio>
 
     <!-- SFX -->
-    <audio id="sfx-correct"><source src="seikai.mp3" type="audio/mpeg"></audio>
-    <audio id="sfx-wrong"><source src="zannen.mp3" type="audio/mpeg"></audio>
-    <audio id="sfx-click"><source src="https://soundeffect-lab.info/sound/voice/mp3/info-girl1/info-girl1-zannendeshita1.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-correct" preload="auto"><source src="seikai.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-wrong" preload="auto"><source src="zannen.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-click" preload="auto"><source src="https://soundeffect-lab.info/sound/voice/mp3/info-girl1/info-girl1-zannendeshita1.mp3" type="audio/mpeg"></audio>
 
     <script>
-        // --- Audio Controller ---
+        // --- Audio Controller (Simplified for reliability) ---
         let currentBgm = null;
         let isMuted = false;
 
         function playBgm(id) {
             const nextBgm = document.getElementById(id);
-            if (currentBgm === nextBgm) return;
+            if (!nextBgm || currentBgm === nextBgm) return;
 
-            // フェードアウト
+            // 前の曲を停止
             if (currentBgm) {
-                const prev = currentBgm;
-                let vol = 0.3;
-                const interval = setInterval(() => {
-                    vol -= 0.05;
-                    if (vol <= 0) {
-                        prev.pause();
-                        prev.currentTime = 0;
-                        clearInterval(interval);
-                    } else {
-                        prev.volume = vol;
-                    }
-                }, 50);
+                currentBgm.pause();
+                currentBgm.currentTime = 0;
             }
 
             currentBgm = nextBgm;
-            currentBgm.volume = 0;
+            currentBgm.volume = 0.3; // ボリューム固定（フェードなし）
+
             if (!isMuted) {
-                currentBgm.play().catch(e => console.log("Play blocked"));
-                let vol = 0;
-                const interval = setInterval(() => {
-                    vol += 0.05;
-                    if (vol >= 0.3) {
-                        currentBgm.volume = 0.3;
-                        clearInterval(interval);
-                    } else {
-                        currentBgm.volume = vol;
-                    }
-                }, 50);
+                // play()はPromiseを返すので、エラーハンドリング
+                const playPromise = currentBgm.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("BGM再生エラー:", error);
+                        // 自動再生制限がかかった場合は、次のクリックまで待機される
+                    });
+                }
             }
         }
 
         function playSfx(id) {
             if (isMuted) return;
             const sfx = document.getElementById(id);
-            sfx.currentTime = 0;
-            sfx.play();
+            if (sfx) {
+                sfx.currentTime = 0;
+                sfx.volume = 0.5;
+                sfx.play().catch(e => console.log("SFX再生エラー:", e));
+            }
         }
 
         function toggleMute() {
@@ -172,7 +163,7 @@
             if (isMuted) {
                 if (currentBgm) currentBgm.pause();
             } else {
-                if (currentBgm) currentBgm.play();
+                if (currentBgm) currentBgm.play().catch(e => console.log("再開エラー:", e));
             }
         }
 
@@ -185,7 +176,6 @@
             { id: 5, threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
         ];
 
-        // 漢字データ (省略版: 実際には全50問分のデータを定義)
         const gameData = {
             stage1: [
                 {t: '也', r: '土', k: '地', d: ['石', '糸', '車']}, {t: '白', r: '氵', k: '泊', d: ['土', '石', '目']},
@@ -227,12 +217,16 @@
         let currentIndex = 0;
         let masterList = [];
 
+        // ページロード時にBGM準備
         window.onload = () => {
-            playBgm('bgm-title');
+            console.log("Game Loaded");
         };
 
         function startGame() {
+            // タイトルBGMを開始（最初のユーザーアクション）
+            playBgm('bgm-title');
             playSfx('sfx-click');
+            
             document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             
@@ -316,7 +310,7 @@
                 }
             } else {
                 playSfx('sfx-wrong');
-                playBgm('bgm-title'); // 失敗したらタイトル曲に戻す
+                playBgm('bgm-title');
                 icon.textContent = "💀";
                 msg.innerHTML = `<span class="text-rose-500 text-4xl font-black">GAME OVER</span><br><br><span class="text-white text-xl font-bold">残念、そこまでだ。<br>記録: ${currentIndex} 問</span>`;
                 kanjiBox.classList.add('hidden');
