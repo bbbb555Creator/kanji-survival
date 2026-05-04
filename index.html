@@ -29,7 +29,7 @@
         #game-container {
             min-height: 100vh;
             min-height: -webkit-fill-available;
-            padding-top: env(safe-area-inset-top); /* iPhoneのノッチ対策 */
+            padding-top: env(safe-area-inset-top);
         }
 
         /* 進捗バーの目盛り用スタイル */
@@ -46,6 +46,11 @@
 <body class="bg-slate-900">
     <div id="game-container" class="w-full flex flex-col relative overflow-hidden">
         
+        <!-- バージョン表記 (左上) -->
+        <div class="absolute top-14 left-6 z-50 text-[10px] text-slate-500 font-mono">
+            ver.1.1
+        </div>
+
         <!-- Mute Button - 被らないように位置を少し下げて調整 -->
         <div class="absolute top-16 right-6 z-50">
             <button id="mute-btn" onclick="toggleMute()" class="p-3 bg-slate-800/90 rounded-full text-slate-400 hover:text-white transition-colors backdrop-blur-md shadow-2xl border border-slate-700">
@@ -135,7 +140,6 @@
         ];
         const taunts = ["こんなのもわかんないの？w", "出直してこい！", "小学生からやり直せば？", "本気出してこれ？w", "脳みそ動いてる？", "次は頑張ろうね(棒)", "漢字、苦手なんだねw", "ププッw どんまいw", "それ、部首じゃないよ？w", "お疲れ様でした〜(笑)"];
         
-        // データの重複を避けるため簡易化して保持
         const gameData = {
             stage1: [{t:'也',r:'土',k:'地',d:['石','糸','車']},{t:'白',r:'氵',k:'泊',d:['土','石','目']},{t:'丁',r:'扌',k:'打',d:['心','女','耳']},{t:'月',r:'日',k:'明',d:['扌','木','金']},{t:'未',r:'口',k:'味',d:['金','火','土']},{t:'生',r:'女',k:'姓',d:['金','火','木']},{t:'立',r:'氵',k:'泣',d:['金','火','土']},{t:'主',r:'氵',k:'注',d:['口','女','日']},{t:'毎',r:'氵',k:'海',d:['金','火','土']},{t:'不',r:'木',k:'杯',d:['火','口','金']}],
             stage2: [{t:'寺',r:'彳',k:'待',d:['目','火','王']},{t:'可',r:'亻',k:'何',d:['目','土','金']},{t:'令',r:'冫',k:'冷',d:['氵','木','口']},{t:'平',r:'言',k:'評',d:['扌','木','金']},{t:'交',r:'木',k:'校',d:['金','土','火']},{t:'古',r:'木',k:'枯',d:['火','金','目']},{t:'朱',r:'木',k:'株',d:['金','火','土']},{t:'見',r:'王',k:'現',d:['扌','木','火']},{t:'各',r:'木',k:'格',d:['金','火','土']},{t:'少',r:'石',k:'砂',d:['火','目','口']}],
