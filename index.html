@@ -95,7 +95,6 @@
             const nextBgm = document.getElementById(id);
             if (!nextBgm) return;
             if (currentBgm === nextBgm) {
-                // すでに同じ曲が再生されている場合は再開（誤答ポーズ後用）
                 if (!isMuted && currentBgm.paused) {
                     currentBgm.play().catch(e => {});
                 }
@@ -116,7 +115,7 @@
             const sfx = document.getElementById(id);
             if (sfx) {
                 sfx.currentTime = 0;
-                sfx.volume = 0.6; // 少しだけ音量をアップ
+                sfx.volume = 0.6;
                 sfx.play().catch(e => {});
             }
         }
@@ -155,10 +154,28 @@
             stage5: [{t:'尞',r:'亻',k:'僚',d:['金','火','木']},{t:'解',r:'忄',k:'懈',d:['金','火','木']},{t:'昔',r:'扌',k:'措',d:['言','火','目']},{t:'疑',r:'扌',k:'擬',d:['木','金','土']},{t:'取',r:'走',k:'趣',d:['金','火','木']},{t:'曼',r:'忄',k:'慢',d:['扌','火','土']},{t:'曼',r:'氵',k:'漫',d:['扌','火','土']},{t:'反',r:'亻',k:'仮',d:['金','火','土']},{t:'宛',r:'月',k:'腕',d:['扌','目','火']},{t:'某',r:'女',k:'媒',d:['氵','木','土']}]
         };
 
+        // 配列をシャッフルするヘルパー関数
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         function startGame() {
             document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            masterList = [...gameData.stage1, ...gameData.stage2, ...gameData.stage3, ...gameData.stage4, ...gameData.stage5];
+            
+            // 各ステージごとにシャッフルして合体させる
+            masterList = [
+                ...shuffle([...gameData.stage1]),
+                ...shuffle([...gameData.stage2]),
+                ...shuffle([...gameData.stage3]),
+                ...shuffle([...gameData.stage4]),
+                ...shuffle([...gameData.stage5])
+            ];
+            
             currentIndex = 0;
             initQuiz();
         }
@@ -230,7 +247,6 @@
                     btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
                 }
             } else {
-                // 誤答時はBGMを一時停止して効果音を目立たせる
                 if (currentBgm) currentBgm.pause();
                 playSfx('sfx-wrong');
                 
@@ -245,7 +261,6 @@
         }
         
         window.onload = () => {
-            // タイトル画面でのBGM自動再生を削除
         }
     </script>
 </body>
