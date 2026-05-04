@@ -1,195 +1,306 @@
-let currentBgm = null;
-let isMuted = false;
-let currentIndex = 0;
-let masterList = [];
-
-// 音声制限を解除（SEのみ先に解放して、BGMは個別に制御）
-function unlockAudio() {
-    const sfxIds = ['sfx-correct', 'sfx-wrong'];
-    sfxIds.forEach(id => {
-        const audio = document.getElementById(id);
-        audio.play().then(() => {
-            audio.pause();
-            audio.currentTime = 0;
-        }).catch(e => console.log("Unlock skipped"));
-    });
-}
-
-function playBgm(id) {
-    const nextBgm = document.getElementById(id);
-    if (!nextBgm || isMuted) return;
-
-    // すでに同じ曲が流れていたら何もしない
-    if (currentBgm === nextBgm) return;
-
-    // 前の曲を止める
-    if (currentBgm) {
-        currentBgm.pause();
-        currentBgm.currentTime = 0;
-    }
-
-    currentBgm = nextBgm;
-    currentBgm.volume = 0.3;
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>漢字合体サバイバル</title>
     
-    // playのPromiseを処理してエラーを防ぐ
-    const playPromise = currentBgm.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(error => {
-            console.log("BGM playback failed, waiting for next interaction.");
-        });
-    }
-}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="漢字サバイバル">
 
-function playSfx(id) {
-    if (isMuted) return;
-    const sfx = document.getElementById(id);
-    if (sfx) {
-        sfx.currentTime = 0;
-        sfx.volume = 0.6;
-        sfx.play().catch(e => {});
-    }
-}
-
-function triggerVibrate(pattern) {
-    if ('vibrate' in navigator) {
-        navigator.vibrate(pattern);
-    }
-}
-
-function toggleMute() {
-    isMuted = !isMuted;
-    document.getElementById('volume-on').classList.toggle('hidden', isMuted);
-    document.getElementById('volume-off').classList.toggle('hidden', !isMuted);
-    if (isMuted && currentBgm) {
-        currentBgm.pause();
-    } else if (!isMuted && currentBgm) {
-        currentBgm.play().catch(e => {});
-    }
-}
-
-function returnToTitle() {
-    if (currentBgm) {
-        currentBgm.pause();
-        currentBgm.currentTime = 0;
-    }
-    currentBgm = null;
-    document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('game-screen').classList.add('hidden');
-    document.getElementById('title-screen').classList.remove('hidden');
-}
-
-// --- ゲームロジック ---
-
-function startGame() {
-    // 1. まず音出しの権利を得る
-    unlockAudio();
-    
-    // 2. データを準備
-    masterList = [
-        ...shuffle([...gameData.stage1]),
-        ...shuffle([...gameData.stage2]),
-        ...shuffle([...gameData.stage3]),
-        ...shuffle([...gameData.stage4]),
-        ...shuffle([...gameData.stage5])
-    ];
-    currentIndex = 0;
-
-    // 3. 画面を切り替えてBGMを即座に鳴らす
-    document.getElementById('title-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    
-    // ステージ1のBGMを明示的に即再生
-    playBgm('bgm-stage1');
-    
-    initQuiz();
-}
-
-function initQuiz() {
-    const currentQ = masterList[currentIndex];
-    const currentStage = STAGE_CONFIG.find(s => currentIndex < s.threshold) || STAGE_CONFIG[4];
-    
-    // ステージが変わる時だけBGMを切り替える（playBgm内でチェックしてるよ）
-    playBgm(currentStage.bgm);
-    
-    document.getElementById('tsukuri-display').textContent = currentQ.t;
-    document.getElementById('q-num').textContent = currentIndex + 1;
-    document.getElementById('streak-count').textContent = currentIndex;
-    document.getElementById('progress-bar').style.width = `${(currentIndex / 50) * 100}%`;
-    
-    const badge = document.getElementById('level-badge');
-    badge.textContent = currentStage.name;
-    badge.className = `px-3 py-1 ${currentStage.color} text-white text-[10px] rounded-full font-bold shadow-lg`;
-    document.getElementById('stage-name-display').textContent = `[ ${currentStage.name} ]`;
-
-    const choices = shuffle([currentQ.r, ...currentQ.d]);
-    const grid = document.getElementById('choices-grid');
-    grid.innerHTML = '';
-    choices.forEach(radical => {
-        const btn = document.createElement('button');
-        btn.className = "radical-btn kanji-font py-5 text-6xl bg-slate-800 border-2 border-slate-700 rounded-[1.5rem] text-white shadow-xl";
-        btn.textContent = radical;
-        btn.onclick = () => check(radical);
-        grid.appendChild(btn);
-    });
-}
-
-function check(selected) {
-    const currentQ = masterList[currentIndex];
-    const isCorrect = (selected === currentQ.r);
-    
-    // iOS対策：何よりも先にまずバイブとSEを叩く
-    if (isCorrect) {
-        triggerVibrate(50);
-        playSfx('sfx-correct');
-    } else {
-        triggerVibrate([100, 50, 100]);
-        playSfx('sfx-wrong');
-    }
-
-    const overlay = document.getElementById('overlay');
-    const msg = document.getElementById('overlay-message');
-    const icon = document.getElementById('overlay-icon');
-    const btn = document.getElementById('action-btn');
-    const kanjiBox = document.getElementById('result-kanji-container');
-    overlay.classList.remove('hidden');
-
-    if (isCorrect) {
-        currentIndex++;
-        const stageEndIdx = STAGE_CONFIG.findIndex(s => currentIndex === s.threshold);
-        
-        if (stageEndIdx !== -1 && currentIndex < 50) {
-            icon.textContent = "🏆";
-            msg.innerHTML = "STAGE CLEAR!<br>" + STAGE_CONFIG[stageEndIdx].msg;
-            kanjiBox.classList.add('hidden');
-            btn.textContent = "次のステージへ";
-            btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl";
-            btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
-        } else if (currentIndex >= 50) {
-            playBgm('bgm-ending');
-            icon.textContent = "👑";
-            msg.innerHTML = "全問制覇！おめでとう！";
-            kanjiBox.classList.remove('hidden');
-            document.getElementById('result-kanji').textContent = currentQ.k;
-            btn.textContent = "タイトルへ";
-            btn.className = "w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xl";
-            btn.onclick = () => returnToTitle();
-        } else {
-            icon.textContent = "🌸";
-            msg.innerHTML = "正解！";
-            kanjiBox.classList.remove('hidden');
-            document.getElementById('result-kanji').textContent = currentQ.k;
-            btn.textContent = "次へ";
-            btn.className = "w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xl";
-            btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;900&family=Noto+Serif+JP:wght@900&family=Sawarabi+Mincho&display=swap');
+        body { 
+            font-family: 'Kiwi Maru', serif; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            touch-action: manipulation; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-    } else {
-        if (currentBgm) currentBgm.pause();
-        icon.textContent = "💩";
-        const taunt = taunts[Math.floor(Math.random() * taunts.length)];
-        msg.innerHTML = `<span class="text-rose-500 font-black">${taunt}</span><br><br>記録: ${currentIndex} 問`;
-        kanjiBox.classList.add('hidden');
-        btn.textContent = "再挑戦する";
-        btn.className = "w-full py-5 bg-slate-700 text-white rounded-2xl font-black text-xl";
-        btn.onclick = () => returnToTitle();
-    }
-}
+        .kanji-font { font-family: 'Sawarabi Mincho', 'Noto Serif JP', serif; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .radical-btn:active { transform: scale(0.92); background-color: #1e293b; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="game-container" class="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl p-6 border border-slate-700 relative min-h-[640px] flex flex-col overflow-hidden">
+        
+        <!-- Mute Button -->
+        <div class="absolute top-4 right-4 z-10">
+            <button id="mute-btn" onclick="toggleMute()" class="p-3 bg-slate-800/80 rounded-full text-slate-400 hover:text-white transition-colors backdrop-blur-sm">
+                <svg id="volume-on" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm5.459 2.158a1 1 0 011.414 0 7.5 7.5 0 010 10.608 1 1 0 01-1.414-1.414 5.5 5.5 0 000-7.78 1 1 0 010-1.414zm-2.828 2.828a1 1 0 011.414 0 3.5 3.5 0 010 4.95 1 1 0 01-1.414-1.414 1.5 1.5 0 000-2.122 1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                <svg id="volume-off" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm10.457 1.86a1 1 0 010 1.414l-4.242 4.243 4.242 4.242a1 1 0 11-1.414 1.414L14.182 12l-4.242 4.242a1 1 0 11-1.414-1.414l4.242-4.242-4.242-4.243a1 1 0 011.414-1.414l4.242 4.243 4.242-4.243a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Title Screen -->
+        <div id="title-screen" class="flex-grow flex flex-col items-center justify-center text-center fade-in">
+            <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-blue-500 leading-tight mb-6">漢字合体<br>サバイバル</h1>
+            
+            <div class="bg-slate-800/50 rounded-2xl p-5 mb-8 w-full border border-slate-700 text-sm text-left">
+                <h2 class="text-emerald-400 font-bold mb-3 text-center">遊び方</h2>
+                <p class="text-slate-300 mb-2">① 表示される「つくり」を見る</p>
+                <p class="text-slate-300 mb-2">② 正しい「へん」を4択から選ぶ</p>
+                <p class="text-slate-300">③ 50問連続正解でクリア（ミス即終了）</p>
+            </div>
+
+            <button onclick="startGame()" class="w-full py-6 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-2xl text-2xl font-black text-white shadow-xl active:scale-95 transition-transform">挑戦を開始する</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden flex-grow flex flex-col fade-in">
+            <div class="flex justify-between items-center mb-4 pt-4">
+                <div id="level-badge" class="px-3 py-1 text-white text-[10px] rounded-full font-bold"></div>
+                <div class="text-[10px] text-slate-500">STREAK: <span id="streak-count" class="text-emerald-400 text-lg font-black">0</span></div>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full mb-8 overflow-hidden">
+                <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-center mb-8">
+                <div id="stage-name-display" class="text-slate-400 text-[10px] mb-1 font-bold"></div>
+                <div class="text-slate-500 text-xs mb-3 font-bold">第 <span id="q-num" class="text-xl font-black text-white">1</span> / 50 問</div>
+                <div id="tsukuri-box" class="w-40 h-40 mx-auto bg-slate-800 border-4 border-slate-700 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative">
+                    <span id="tsukuri-display" class="kanji-font text-[6.5rem] text-white"></span>
+                </div>
+            </div>
+            <div id="choices-grid" class="grid grid-cols-2 gap-4 mt-auto mb-2"></div>
+        </div>
+
+        <!-- Result Overlay -->
+        <div id="overlay" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-slate-950/98 p-8 backdrop-blur-md text-center">
+            <div class="w-full fade-in">
+                <div id="overlay-icon" class="text-7xl mb-6"></div>
+                <div id="overlay-message" class="text-xl font-bold mb-8 text-slate-200"></div>
+                <div id="result-kanji-container" class="hidden mb-10">
+                    <div id="result-kanji" class="kanji-font text-[6rem] text-white bg-slate-900 w-32 h-32 mx-auto flex items-center justify-center rounded-3xl border border-slate-700 shadow-inner"></div>
+                </div>
+                <button id="action-btn" class="w-full py-5 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-transform"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO ASSETS -->
+    <audio id="bgm-stage1" loop preload="auto"><source src="stage1.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage2" loop preload="auto"><source src="stage2.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage3" loop preload="auto"><source src="stage3.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage4" loop preload="auto"><source src="stage4.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage5" loop preload="auto"><source src="stage.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-ending" loop preload="auto"><source src="kuria.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-correct" preload="auto"><source src="seikai.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-wrong" preload="auto"><source src="zannen.mp3" type="audio/mpeg"></audio>
+
+    <script>
+        let currentBgm = null;
+        let isMuted = false;
+        let currentIndex = 0;
+        let masterList = [];
+
+        // 音声制限を解除（全ファイルを一度だけミュート状態で再生準備）
+        function unlockAudio() {
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(audio => {
+                audio.muted = true;
+                const p = audio.play();
+                if (p !== undefined) {
+                    p.then(() => {
+                        audio.pause();
+                        audio.muted = false;
+                        audio.currentTime = 0;
+                    }).catch(e => console.log("Audio unlock error:", e));
+                }
+            });
+        }
+
+        function playBgm(id) {
+            const nextBgm = document.getElementById(id);
+            if (!nextBgm) return;
+            
+            // すでに再生中のBGMと同じなら何もしない
+            if (currentBgm === nextBgm) {
+                if (!isMuted && currentBgm.paused) currentBgm.play().catch(e => {});
+                return;
+            }
+
+            // 既存のBGMを停止
+            if (currentBgm) {
+                currentBgm.pause();
+                currentBgm.currentTime = 0;
+            }
+
+            currentBgm = nextBgm;
+            currentBgm.volume = 0.3;
+            if (!isMuted) {
+                currentBgm.play().catch(e => {});
+            }
+        }
+
+        function playSfx(id) {
+            if (isMuted) return;
+            const sfx = document.getElementById(id);
+            if (sfx) {
+                sfx.currentTime = 0;
+                sfx.volume = 0.6;
+                sfx.play().catch(e => {});
+            }
+        }
+
+        function triggerVibrate(pattern) {
+            if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate(pattern);
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('volume-on').classList.toggle('hidden', isMuted);
+            document.getElementById('volume-off').classList.toggle('hidden', !isMuted);
+            if (isMuted && currentBgm) currentBgm.pause();
+            else if (currentBgm) currentBgm.play().catch(e=>{});
+        }
+
+        function returnToTitle() {
+            if (currentBgm) { currentBgm.pause(); currentBgm.currentTime = 0; }
+            currentBgm = null;
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('title-screen').classList.remove('hidden');
+        }
+
+        const STAGE_CONFIG = [
+            { threshold: 10, name: "小学校低学年", color: "bg-blue-600", bgm: "bgm-stage1", msg: "次は高学年レベルへ。" },
+            { threshold: 20, name: "小学校高学年", color: "bg-emerald-600", bgm: "bgm-stage2", msg: "中学生レベルに突入。" },
+            { threshold: 30, name: "中学生(標準)", color: "bg-amber-600", bgm: "bgm-stage3", msg: "次はもっと険しいぞ。" },
+            { threshold: 40, name: "中学生(上級)", color: "bg-orange-600", bgm: "bgm-stage4", msg: "いよいよ高校・一般レベル。" },
+            { threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
+        ];
+
+        const taunts = ["こんなのもわかんないの？w", "出直してこい！", "小学生からやり直せば？", "本気出してこれ？w", "脳みそ動いてる？", "次は頑張ろうね(棒)", "漢字、苦手なんだねw", "ププッw どんまいw", "それ、部首じゃないよ？w", "お疲れ様でした〜(笑)"];
+
+        const gameData = {
+            stage1: [{t:'也',r:'土',k:'地',d:['石','糸','車']},{t:'白',r:'氵',k:'泊',d:['土','石','目']},{t:'丁',r:'扌',k:'打',d:['心','女','耳']},{t:'月',r:'日',k:'明',d:['扌','木','金']},{t:'未',r:'口',k:'味',d:['金','火','土']},{t:'生',r:'女',k:'姓',d:['金','火','木']},{t:'立',r:'氵',k:'泣',d:['金','火','土']},{t:'主',r:'氵',k:'注',d:['口','女','日']},{t:'毎',r:'氵',k:'海',d:['金','火','土']},{t:'不',r:'木',k:'杯',d:['火','口','金']}],
+            stage2: [{t:'寺',r:'彳',k:'待',d:['目','火','王']},{t:'可',r:'亻',k:'何',d:['目','土','金']},{t:'令',r:'冫',k:'冷',d:['氵','木','口']},{t:'平',r:'言',k:'評',d:['扌','木','金']},{t:'交',r:'木',k:'校',d:['金','土','火']},{t:'古',r:'木',k:'枯',d:['火','金','目']},{t:'朱',r:'木',k:'株',d:['金','火','土']},{t:'見',r:'王',k:'現',d:['扌','木','火']},{t:'各',r:'木',k:'格',d:['金','火','土']},{t:'少',r:'石',k:'砂',d:['火','目','口']}],
+            stage3: [{t:'成',r:'言',k:'誠',d:['扌','木','金']},{t:'失',r:'金',k:'鉄',d:['火','氵','土']},{t:'隹',r:'扌',k:'推',d:['金','火','土']},{t:'台',r:'氵',k:'治',d:['王','彳','目']},{t:'同',r:'氵',k:'洞',d:['言','扌','彳']},{t:'式',r:'扌',k:'拭',d:['金','火','木']},{t:'京',r:'氵',k:'涼',d:['金','火','木']},{t:'及',r:'氵',k:'汲',d:['木','金','土']},{t:'半',r:'亻',k:'伴',d:['金','火','木']},{t:'西',r:'日',k:'晒',d:['金','火','土']}],
+            stage4: [{t:'荒',r:'忄',k:'慌',d:['扌','木','金']},{t:'登',r:'氵',k:'澄',d:['金','火','土']},{t:'義',r:'亻',k:'儀',d:['金','火','木']},{t:'普',r:'言',k:'譜',d:['金','火','木']},{t:'票',r:'木',k:'標',d:['火','土','口']},{t:'票',r:'氵',k:'漂',d:['火','土','口']},{t:'皮',r:'氵',k:'波',d:['金','火','土']},{t:'余',r:'彳',k:'徐',d:['目','耳','口']},{t:'巨',r:'扌',k:'拒',d:['目','耳','鼻']},{t:'司',r:'亻',k:'伺',d:['金','火','木']}],
+            stage5: [{t:'尞',r:'亻',k:'僚',d:['金','火','木']},{t:'解',r:'忄',k:'懈',d:['金','火','木']},{t:'昔',r:'扌',k:'措',d:['言','火','目']},{t:'疑',r:'扌',k:'擬',d:['木','金','土']},{t:'取',r:'走',k:'趣',d:['金','火','木']},{t:'曼',r:'忄',k:'慢',d:['扌','火','土']},{t:'曼',r:'氵',k:'漫',d:['扌','火','土']},{t:'反',r:'亻',k:'仮',d:['金','火','土']},{t:'宛',r:'月',k:'腕',d:['扌','目','火']},{t:'某',r:'女',k:'媒',d:['氵','木','土']}]
+        };
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            unlockAudio(); // 音声制限を準備
+            document.getElementById('title-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            masterList = [
+                ...shuffle([...gameData.stage1]),
+                ...shuffle([...gameData.stage2]),
+                ...shuffle([...gameData.stage3]),
+                ...shuffle([...gameData.stage4]),
+                ...shuffle([...gameData.stage5])
+            ];
+            
+            currentIndex = 0;
+            initQuiz();
+        }
+
+        function initQuiz() {
+            const currentQ = masterList[currentIndex];
+            const currentStage = STAGE_CONFIG.find(s => currentIndex < s.threshold) || STAGE_CONFIG[4];
+            
+            // ステージに応じたBGMを再生
+            playBgm(currentStage.bgm);
+            
+            document.getElementById('tsukuri-display').textContent = currentQ.t;
+            document.getElementById('q-num').textContent = currentIndex + 1;
+            document.getElementById('streak-count').textContent = currentIndex;
+            document.getElementById('progress-bar').style.width = `${(currentIndex / 50) * 100}%`;
+            
+            const badge = document.getElementById('level-badge');
+            badge.textContent = currentStage.name;
+            badge.className = `px-3 py-1 ${currentStage.color} text-white text-[10px] rounded-full font-bold shadow-lg`;
+            document.getElementById('stage-name-display').textContent = `[ ${currentStage.name} ]`;
+
+            const choices = shuffle([currentQ.r, ...currentQ.d]);
+            const grid = document.getElementById('choices-grid');
+            grid.innerHTML = '';
+            choices.forEach(radical => {
+                const btn = document.createElement('button');
+                btn.className = "radical-btn kanji-font py-5 text-6xl bg-slate-800 border-2 border-slate-700 rounded-[1.5rem] text-white shadow-xl";
+                btn.textContent = radical;
+                btn.onclick = () => check(radical);
+                grid.appendChild(btn);
+            });
+        }
+
+        function check(selected) {
+            const currentQ = masterList[currentIndex];
+            const isCorrect = (selected === currentQ.r);
+            const overlay = document.getElementById('overlay');
+            const msg = document.getElementById('overlay-message');
+            const icon = document.getElementById('overlay-icon');
+            const btn = document.getElementById('action-btn');
+            const kanjiBox = document.getElementById('result-kanji-container');
+            overlay.classList.remove('hidden');
+
+            if (isCorrect) {
+                triggerVibrate(50);
+                playSfx('sfx-correct');
+                currentIndex++;
+                const stageEndIdx = STAGE_CONFIG.findIndex(s => currentIndex === s.threshold);
+                
+                if (stageEndIdx !== -1 && currentIndex < 50) {
+                    icon.textContent = "🏆";
+                    msg.innerHTML = "STAGE CLEAR!<br>" + STAGE_CONFIG[stageEndIdx].msg;
+                    kanjiBox.classList.add('hidden');
+                    btn.textContent = "次のステージへ";
+                    btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl";
+                    btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
+                } else if (currentIndex >= 50) {
+                    playBgm('bgm-ending');
+                    icon.textContent = "👑";
+                    msg.innerHTML = "全問制覇！おめでとう！";
+                    kanjiBox.classList.remove('hidden');
+                    document.getElementById('result-kanji').textContent = currentQ.k;
+                    btn.textContent = "タイトルへ";
+                    btn.className = "w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xl";
+                    btn.onclick = () => returnToTitle();
+                } else {
+                    icon.textContent = "🌸";
+                    msg.innerHTML = "正解！";
+                    kanjiBox.classList.remove('hidden');
+                    document.getElementById('result-kanji').textContent = currentQ.k;
+                    btn.textContent = "次へ";
+                    btn.className = "w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-xl";
+                    btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
+                }
+            } else {
+                triggerVibrate([100, 50, 100]);
+                if (currentBgm) currentBgm.pause();
+                playSfx('sfx-wrong');
+                
+                icon.textContent = "💩";
+                const taunt = taunts[Math.floor(Math.random() * taunts.length)];
+                msg.innerHTML = `<span class="text-rose-500 font-black">${taunt}</span><br><br>記録: ${currentIndex} 問`;
+                kanjiBox.classList.add('hidden');
+                btn.textContent = "再挑戦する";
+                btn.className = "w-full py-5 bg-slate-700 text-white rounded-2xl font-black text-xl";
+                btn.onclick = () => returnToTitle();
+            }
+        }
+    </script>
+</body>
+</html>
