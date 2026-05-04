@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>漢字合体サバイバル - Debug Edition</title>
+    <title>漢字合体サバイバル</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;900&family=Noto+Serif+JP:wght@900&family=Sawarabi+Mincho&display=swap');
@@ -17,11 +17,6 @@
 <body class="min-h-screen flex items-center justify-center p-4">
     <div id="game-container" class="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl p-6 border border-slate-700 relative min-h-[640px] flex flex-col overflow-hidden">
         
-        <!-- 音声診断ログ -->
-        <div id="audio-log" class="absolute top-16 left-4 right-4 z-20 bg-black/60 text-[10px] p-2 rounded text-emerald-400 font-mono pointer-events-none">
-            Audio Status: Waiting for user interaction...
-        </div>
-
         <div class="absolute top-4 right-4 z-10">
             <button id="mute-btn" onclick="toggleMute()" class="p-3 bg-slate-800/80 rounded-full text-slate-400 hover:text-white transition-colors backdrop-blur-sm">
                 <svg id="volume-on" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
@@ -80,18 +75,8 @@
     <audio id="sfx-wrong" preload="auto"><source src="zannen.mp3" type="audio/mpeg"></audio>
 
     <script>
-        const log = (msg) => {
-            const el = document.getElementById('audio-log');
-            el.innerText = msg;
-            console.log(msg);
-        };
-
         let currentBgm = null;
         let isMuted = false;
-
-        document.querySelectorAll('audio').forEach(audio => {
-            audio.onerror = () => log(`Error: ${audio.id} file not found`);
-        });
 
         function playBgm(id) {
             const nextBgm = document.getElementById(id);
@@ -103,8 +88,7 @@
             currentBgm.volume = 0.3;
 
             if (!isMuted) {
-                currentBgm.play().then(() => log(`Playing: ${id}`))
-                .catch(e => log(`Blocked: Click anywhere to play ${id}`));
+                currentBgm.play().catch(e => console.log("Audio play blocked by browser"));
             }
         }
 
@@ -114,7 +98,7 @@
             if (sfx) {
                 sfx.currentTime = 0;
                 sfx.volume = 0.5;
-                sfx.play().catch(e => log(`SFX Error: ${id}`));
+                sfx.play().catch(e => console.log("SFX error"));
             }
         }
 
@@ -134,7 +118,6 @@
             { threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
         ];
 
-        // 煽りコメントリスト
         const taunts = [
             "こんなのもわかんないの？w",
             "出直してこい！",
@@ -232,7 +215,6 @@
                 playSfx('sfx-wrong');
                 playBgm('bgm-title');
                 icon.textContent = "💩";
-                // ランダムな煽りコメントを選択
                 const taunt = taunts[Math.floor(Math.random() * taunts.length)];
                 msg.innerHTML = `<span class="text-rose-500">${taunt}</span><br><br>記録: ${currentIndex} 問`;
                 kanjiBox.classList.add('hidden');
