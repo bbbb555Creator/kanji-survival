@@ -123,13 +123,11 @@
             const nextBgm = document.getElementById(id);
             if (!nextBgm) return;
             
-            // すでに再生中のBGMと同じなら何もしない
             if (currentBgm === nextBgm) {
                 if (!isMuted && currentBgm.paused) currentBgm.play().catch(e => {});
                 return;
             }
 
-            // 既存のBGMを停止
             if (currentBgm) {
                 currentBgm.pause();
                 currentBgm.currentTime = 0;
@@ -201,7 +199,9 @@
         }
 
         function startGame() {
-            unlockAudio(); // 音声制限を準備
+            // 音声制限を解除
+            unlockAudio(); 
+            
             document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             
@@ -214,6 +214,10 @@
             ];
             
             currentIndex = 0;
+
+            // ボタンクリックの瞬間にステージ1のBGMを再生
+            playBgm('bgm-stage1');
+            
             initQuiz();
         }
 
@@ -221,7 +225,7 @@
             const currentQ = masterList[currentIndex];
             const currentStage = STAGE_CONFIG.find(s => currentIndex < s.threshold) || STAGE_CONFIG[4];
             
-            // ステージに応じたBGMを再生
+            // ステージが変わるタイミングでBGMも自動変更（同じBGMなら継続）
             playBgm(currentStage.bgm);
             
             document.getElementById('tsukuri-display').textContent = currentQ.t;
