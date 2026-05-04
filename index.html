@@ -32,7 +32,6 @@
             padding-top: env(safe-area-inset-top);
         }
 
-        /* 進捗バーの目盛り用スタイル */
         .progress-marker {
             position: absolute;
             top: 0;
@@ -48,23 +47,21 @@
         
         <!-- バージョン表記 (左上) -->
         <div class="absolute top-14 left-6 z-50 text-[10px] text-slate-500 font-mono">
-            ver.1.1
-        </div>
-
-        <!-- Mute Button - 被らないように位置を少し下げて調整 -->
-        <div class="absolute top-16 right-6 z-50">
-            <button id="mute-btn" onclick="toggleMute()" class="p-3 bg-slate-800/90 rounded-full text-slate-400 hover:text-white transition-colors backdrop-blur-md shadow-2xl border border-slate-700">
-                <svg id="volume-on" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm5.459 2.158a1 1 0 011.414 0 7.5 7.5 0 010 10.608 1 1 0 01-1.414-1.414 5.5 5.5 0 000-7.78 1 1 0 010-1.414zm-2.828 2.828a1 1 0 011.414 0 3.5 3.5 0 010 4.95 1 1 0 01-1.414-1.414 1.5 1.5 0 000-2.122 1 1 0 010-1.414z" />
-                </svg>
-                <svg id="volume-off" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm10.457 1.86a1 1 0 010 1.414l-4.242 4.243 4.242 4.242a1 1 0 11-1.414 1.414L14.182 12l-4.242 4.242a1 1 0 11-1.414-1.414l4.242-4.242-4.242-4.243a1 1 0 011.414-1.414l4.242 4.243 4.242-4.243a1 1 0 011.414 0z" />
-                </svg>
-            </button>
+            ver.1.3
         </div>
 
         <!-- Screens -->
         <div id="title-screen" class="flex-grow flex flex-col items-center justify-center text-center p-8 fade-in">
+            <div class="absolute top-16 right-6">
+                <button onclick="toggleMute()" class="p-3 bg-slate-800/90 rounded-full text-slate-400 border border-slate-700">
+                    <svg id="title-volume-on" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm5.459 2.158a1 1 0 011.414 0 7.5 7.5 0 010 10.608 1 1 0 01-1.414-1.414 5.5 5.5 0 000-7.78 1 1 0 010-1.414zm-2.828 2.828a1 1 0 011.414 0 3.5 3.5 0 010 4.95 1 1 0 01-1.414-1.414 1.5 1.5 0 000-2.122 1 1 0 010-1.414z" />
+                    </svg>
+                    <svg id="title-volume-off" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm10.457 1.86a1 1 0 010 1.414l-4.242 4.243 4.242 4.242a1 1 0 11-1.414 1.414L14.182 12l-4.242 4.242a1 1 0 11-1.414-1.414l4.242-4.242-4.242-4.243a1 1 0 011.414-1.414l4.242 4.243 4.242-4.243a1 1 0 011.414 0z" />
+                    </svg>
+                </button>
+            </div>
             <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-blue-500 leading-tight mb-16">漢字合体<br>サバイバル</h1>
             <button onclick="showInstructions()" class="w-full py-6 bg-slate-800 border border-slate-600 rounded-3xl text-2xl font-bold text-white shadow-xl active:scale-95 transition-all">遊び方をみる</button>
         </div>
@@ -83,23 +80,35 @@
         <div id="game-screen" class="hidden flex-grow flex flex-col p-6 fade-in">
             <div class="flex justify-between items-end mb-4 pt-8">
                 <div id="level-badge" class="px-4 py-1.5 text-white text-xs rounded-full font-bold shadow-lg"></div>
-                <div class="text-xs text-slate-500 font-bold text-right">STREAK<br><span id="streak-count" class="text-emerald-400 text-3xl font-black">0</span></div>
+                <!-- STREAKをSTAGEに変更 -->
+                <div class="text-xs text-slate-500 font-bold text-right uppercase tracking-wider">Stage<br><span id="stage-count" class="text-emerald-400 text-3xl font-black">1</span></div>
             </div>
 
             <!-- 目盛り付き進捗バー -->
-            <div class="relative w-full bg-slate-800 h-3 rounded-full mb-10 overflow-hidden shadow-inner border border-slate-700">
+            <div class="relative w-full bg-slate-800 h-3 rounded-full overflow-hidden shadow-inner border border-slate-700">
                 <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-full transition-all duration-300" style="width: 0%"></div>
-                <!-- 10, 20, 30, 40問地点の目盛り -->
                 <div class="progress-marker" style="left: 20%;"></div>
                 <div class="progress-marker" style="left: 40%;"></div>
                 <div class="progress-marker" style="left: 60%;"></div>
                 <div class="progress-marker" style="left: 80%;"></div>
             </div>
 
-            <div class="text-center mb-6">
-                <div id="stage-name-display" class="text-slate-400 text-xs mb-2 font-bold tracking-widest uppercase"></div>
-                <div class="text-slate-500 text-sm mb-4 font-bold">第 <span id="q-num" class="text-2xl font-black text-white">1</span> / 50 問</div>
-                <div id="tsukuri-box" class="w-48 h-48 mx-auto bg-slate-800 border-4 border-slate-700 rounded-[3.5rem] flex items-center justify-center shadow-2xl relative">
+            <div class="flex justify-end mt-2 mb-2">
+                <button id="mute-btn-game" onclick="toggleMute()" class="p-2 text-slate-500 hover:text-white transition-colors">
+                    <svg id="game-volume-on" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm5.459 2.158a1 1 0 011.414 0 7.5 7.5 0 010 10.608 1 1 0 01-1.414-1.414 5.5 5.5 0 000-7.78 1 1 0 010-1.414zm-2.828 2.828a1 1 0 011.414 0 3.5 3.5 0 010 4.95 1 1 0 01-1.414-1.414 1.5 1.5 0 000-2.122 1 1 0 010-1.414z" />
+                    </svg>
+                    <svg id="game-volume-off" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.686-3.686a1 1 0 011.111-.238zm10.457 1.86a1 1 0 010 1.414l-4.242 4.243 4.242 4.242a1 1 0 11-1.414 1.414L14.182 12l-4.242 4.242a1 1 0 11-1.414-1.414l4.242-4.242-4.242-4.243a1 1 0 011.414-1.414l4.242 4.243 4.242-4.243a1 1 0 011.414 0z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="text-center mb-8">
+                <!-- ステージ名表記を削除し、問題数表示を拡大 -->
+                <div class="text-slate-400 text-lg font-bold">第 <span id="q-num" class="text-5xl font-black text-white px-2">1</span> / 50 問</div>
+                
+                <div id="tsukuri-box" class="w-48 h-48 mx-auto mt-8 bg-slate-800 border-4 border-slate-700 rounded-[3.5rem] flex items-center justify-center shadow-2xl relative">
                     <span id="tsukuri-display" class="kanji-font text-[8rem] text-white"></span>
                 </div>
             </div>
@@ -132,11 +141,11 @@
     <script>
         let currentBgm = null; let isMuted = false; let currentIndex = 0; let masterList = [];
         const STAGE_CONFIG = [
-            { threshold: 10, name: "小学校低学年", color: "bg-blue-600", bgm: "bgm-stage1", msg: "次は高学年レベルへ。" },
-            { threshold: 20, name: "小学校高学年", color: "bg-emerald-600", bgm: "bgm-stage2", msg: "中学生レベルに突入。" },
-            { threshold: 30, name: "中学生(標準)", color: "bg-amber-600", bgm: "bgm-stage3", msg: "次はもっと険しいぞ。" },
-            { threshold: 40, name: "中学生(上級)", color: "bg-orange-600", bgm: "bgm-stage4", msg: "いよいよ高校・一般レベル。" },
-            { threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
+            { id: 1, threshold: 10, name: "小学校低学年", color: "bg-blue-600", bgm: "bgm-stage1", msg: "次は高学年レベルへ。" },
+            { id: 2, threshold: 20, name: "小学校高学年", color: "bg-emerald-600", bgm: "bgm-stage2", msg: "中学生レベルに突入。" },
+            { id: 3, threshold: 30, name: "中学生(標準)", color: "bg-amber-600", bgm: "bgm-stage3", msg: "次はもっと険しいぞ。" },
+            { id: 4, threshold: 40, name: "中学生(上級)", color: "bg-orange-600", bgm: "bgm-stage4", msg: "いよいよ高校・一般レベル。" },
+            { id: 5, threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
         ];
         const taunts = ["こんなのもわかんないの？w", "出直してこい！", "小学生からやり直せば？", "本気出してこれ？w", "脳みそ動いてる？", "次は頑張ろうね(棒)", "漢字、苦手なんだねw", "ププッw どんまいw", "それ、部首じゃないよ？w", "お疲れ様でした〜(笑)"];
         
@@ -152,7 +161,13 @@
         function showInstructions() { document.getElementById('title-screen').classList.add('hidden'); document.getElementById('instruction-screen').classList.remove('hidden'); }
         function playBgm(id) { const n = document.getElementById(id); if (!n || currentBgm === n) return; if (currentBgm) { currentBgm.pause(); currentBgm.currentTime = 0; } currentBgm = n; currentBgm.volume = 0.3; if (!isMuted) currentBgm.play().catch(e=>{}); }
         function playSfx(id) { if (isMuted) return; const s = document.getElementById(id); if (s) { s.currentTime = 0; s.volume = 0.5; s.play().catch(e=>{}); } }
-        function toggleMute() { isMuted = !isMuted; document.getElementById('volume-on').classList.toggle('hidden', isMuted); document.getElementById('volume-off').classList.toggle('hidden', !isMuted); if (currentBgm) isMuted ? currentBgm.pause() : currentBgm.play().catch(e=>{}); }
+        
+        function toggleMute() { 
+            isMuted = !isMuted; 
+            ['title-volume-on', 'game-volume-on'].forEach(id => document.getElementById(id).classList.toggle('hidden', isMuted));
+            ['title-volume-off', 'game-volume-off'].forEach(id => document.getElementById(id).classList.toggle('hidden', !isMuted));
+            if (currentBgm) isMuted ? currentBgm.pause() : currentBgm.play().catch(e=>{}); 
+        }
         
         function startGame() { 
             document.getElementById('instruction-screen').classList.add('hidden'); 
@@ -169,12 +184,13 @@
             playBgm(s.bgm); 
             document.getElementById('tsukuri-display').textContent = q.t; 
             document.getElementById('q-num').textContent = currentIndex+1; 
-            document.getElementById('streak-count').textContent = currentIndex; 
+            // STAGEカウントを表示（1〜5）
+            document.getElementById('stage-count').textContent = s.id; 
             document.getElementById('progress-bar').style.width = `${(currentIndex/50)*100}%`; 
             const b = document.getElementById('level-badge'); 
             b.textContent = s.name; 
             b.className = `px-4 py-1.5 ${s.color} text-white text-xs rounded-full font-bold shadow-lg`; 
-            document.getElementById('stage-name-display').textContent = `[ ${s.name} ]`; 
+            
             const cs = shuffle([q.r, ...q.d]); 
             const g = document.getElementById('choices-grid'); 
             g.innerHTML = ''; 
