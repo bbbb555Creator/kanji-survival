@@ -76,7 +76,6 @@
     </div>
 
     <!-- AUDIO ASSETS -->
-    <audio id="bgm-title" loop preload="auto"><source src="openning.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage1" loop preload="auto"><source src="stage1.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage2" loop preload="auto"><source src="stage2.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage3" loop preload="auto"><source src="stage3.mp3" type="audio/mpeg"></audio>
@@ -125,11 +124,11 @@
         }
 
         function returnToTitle() {
-            // オーバーレイとゲーム画面を隠してタイトルを表示
+            if (currentBgm) { currentBgm.pause(); currentBgm.currentTime = 0; }
+            currentBgm = null;
             document.getElementById('overlay').classList.add('hidden');
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('title-screen').classList.remove('hidden');
-            playBgm('bgm-title');
         }
 
         const STAGE_CONFIG = [
@@ -226,7 +225,6 @@
                 }
             } else {
                 playSfx('sfx-wrong');
-                playBgm('bgm-title');
                 icon.textContent = "💩";
                 const taunt = taunts[Math.floor(Math.random() * taunts.length)];
                 msg.innerHTML = `<span class="text-rose-500">${taunt}</span><br><br>記録: ${currentIndex} 問`;
@@ -238,7 +236,7 @@
         }
         
         window.onload = () => {
-            playBgm('bgm-title');
+            // タイトル画面でのBGM自動再生を削除
         }
     </script>
 </body>
