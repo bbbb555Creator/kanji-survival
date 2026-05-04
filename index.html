@@ -78,7 +78,7 @@
     <!-- AUDIO ASSETS -->
     <audio id="bgm-stage1" loop preload="auto"><source src="stage1.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage2" loop preload="auto"><source src="stage2.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm-stage3" loop preload="auto"><source src="srage3.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm-stage3" loop preload="auto"><source src="stage3.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage4" loop preload="auto"><source src="stage4.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-stage5" loop preload="auto"><source src="stage.mp3" type="audio/mpeg"></audio>
     <audio id="bgm-ending" loop preload="auto"><source src="kuria.mp3" type="audio/mpeg"></audio>
@@ -94,7 +94,13 @@
         function playBgm(id) {
             const nextBgm = document.getElementById(id);
             if (!nextBgm) return;
-            if (currentBgm === nextBgm) return;
+            if (currentBgm === nextBgm) {
+                // すでに同じ曲が再生されている場合は再開（誤答ポーズ後用）
+                if (!isMuted && currentBgm.paused) {
+                    currentBgm.play().catch(e => {});
+                }
+                return;
+            }
 
             if (currentBgm) { currentBgm.pause(); currentBgm.currentTime = 0; }
             currentBgm = nextBgm;
@@ -110,7 +116,7 @@
             const sfx = document.getElementById(id);
             if (sfx) {
                 sfx.currentTime = 0;
-                sfx.volume = 0.5;
+                sfx.volume = 0.6; // 少しだけ音量をアップ
                 sfx.play().catch(e => {});
             }
         }
@@ -224,7 +230,10 @@
                     btn.onclick = () => { overlay.classList.add('hidden'); initQuiz(); };
                 }
             } else {
+                // 誤答時はBGMを一時停止して効果音を目立たせる
+                if (currentBgm) currentBgm.pause();
                 playSfx('sfx-wrong');
+                
                 icon.textContent = "💩";
                 const taunt = taunts[Math.floor(Math.random() * taunts.length)];
                 msg.innerHTML = `<span class="text-rose-500">${taunt}</span><br><br>記録: ${currentIndex} 問`;
