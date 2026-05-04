@@ -17,7 +17,7 @@
 <body class="min-h-screen flex items-center justify-center p-4">
     <div id="game-container" class="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl p-6 border border-slate-700 relative min-h-[640px] flex flex-col overflow-hidden">
         
-        <!-- 音声診断ログ（デバッグ用：後で消せる） -->
+        <!-- 音声診断ログ -->
         <div id="audio-log" class="absolute top-16 left-4 right-4 z-20 bg-black/60 text-[10px] p-2 rounded text-emerald-400 font-mono pointer-events-none">
             Audio Status: Waiting for user interaction...
         </div>
@@ -78,7 +78,6 @@
     <audio id="bgm-ending" loop preload="auto"><source src="kuria.mp3" type="audio/mpeg"></audio>
     <audio id="sfx-correct" preload="auto"><source src="seikai.mp3" type="audio/mpeg"></audio>
     <audio id="sfx-wrong" preload="auto"><source src="zannen.mp3" type="audio/mpeg"></audio>
-    <audio id="sfx-click" preload="auto"><source src="https://soundeffect-lab.info/sound/voice/mp3/info-girl1/info-girl1-zannendeshita1.mp3" type="audio/mpeg"></audio>
 
     <script>
         const log = (msg) => {
@@ -90,14 +89,13 @@
         let currentBgm = null;
         let isMuted = false;
 
-        // 全てのオーディオ要素にエラーハンドリングを追加
         document.querySelectorAll('audio').forEach(audio => {
-            audio.onerror = () => log(`Error: ${audio.id} file not found or corrupted`);
+            audio.onerror = () => log(`Error: ${audio.id} file not found`);
         });
 
         function playBgm(id) {
             const nextBgm = document.getElementById(id);
-            if (!nextBgm) { log(`Error: ${id} element not found`); return; }
+            if (!nextBgm) return;
             if (currentBgm === nextBgm) return;
 
             if (currentBgm) { currentBgm.pause(); currentBgm.currentTime = 0; }
@@ -105,11 +103,8 @@
             currentBgm.volume = 0.3;
 
             if (!isMuted) {
-                currentBgm.play().then(() => {
-                    log(`Playing: ${id}`);
-                }).catch(e => {
-                    log(`Blocked: Click anywhere to play ${id}`);
-                });
+                currentBgm.play().then(() => log(`Playing: ${id}`))
+                .catch(e => log(`Blocked: Click anywhere to play ${id}`));
             }
         }
 
@@ -139,6 +134,20 @@
             { threshold: 50, name: "高校・一般", color: "bg-rose-600", bgm: "bgm-stage5", msg: "" }
         ];
 
+        // 煽りコメントリスト
+        const taunts = [
+            "こんなのもわかんないの？w",
+            "出直してこい！",
+            "小学生からやり直せば？",
+            "本気出してこれ？w",
+            "脳みそ動いてる？",
+            "次は頑張ろうね(棒)",
+            "漢字、苦手なんだねw",
+            "ププッw どんまいw",
+            "それ、部首じゃないよ？w",
+            "お疲れ様でした〜(笑)"
+        ];
+
         const gameData = {
             stage1: [{t:'也',r:'土',k:'地',d:['石','糸','車']},{t:'白',r:'氵',k:'泊',d:['土','石','目']},{t:'丁',r:'扌',k:'打',d:['心','女','耳']},{t:'月',r:'日',k:'明',d:['扌','木','金']},{t:'未',r:'口',k:'味',d:['金','火','土']},{t:'生',r:'女',k:'姓',d:['金','火','木']},{t:'立',r:'氵',k:'泣',d:['金','火','土']},{t:'主',r:'氵',k:'注',d:['口','女','日']},{t:'毎',r:'氵',k:'海',d:['金','火','土']},{t:'不',r:'木',k:'杯',d:['火','口','金']}],
             stage2: [{t:'寺',r:'彳',k:'待',d:['目','火','王']},{t:'可',r:'亻',k:'何',d:['目','土','金']},{t:'令',r:'冫',k:'冷',d:['氵','木','口']},{t:'平',r:'言',k:'評',d:['扌','木','金']},{t:'交',r:'木',k:'校',d:['金','土','火']},{t:'古',r:'木',k:'枯',d:['火','金','目']},{t:'朱',r:'木',k:'株',d:['金','火','土']},{t:'見',r:'王',k:'現',d:['扌','木','火']},{t:'各',r:'木',k:'格',d:['金','火','土']},{t:'少',r:'石',k:'砂',d:['火','目','口']}],
@@ -152,7 +161,6 @@
 
         function startGame() {
             playBgm('bgm-title');
-            playSfx('sfx-click');
             document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             masterList = [...gameData.stage1, ...gameData.stage2, ...gameData.stage3, ...gameData.stage4, ...gameData.stage5];
@@ -193,6 +201,7 @@
             const btn = document.getElementById('action-btn');
             const kanjiBox = document.getElementById('result-kanji-container');
             overlay.classList.remove('hidden');
+
             if (isCorrect) {
                 playSfx('sfx-correct');
                 currentIndex++;
@@ -222,10 +231,12 @@
             } else {
                 playSfx('sfx-wrong');
                 playBgm('bgm-title');
-                icon.textContent = "💀";
-                msg.innerHTML = "GAME OVER<br>記録: " + currentIndex + " 問";
+                icon.textContent = "💩";
+                // ランダムな煽りコメントを選択
+                const taunt = taunts[Math.floor(Math.random() * taunts.length)];
+                msg.innerHTML = `<span class="text-rose-500">${taunt}</span><br><br>記録: ${currentIndex} 問`;
                 kanjiBox.classList.add('hidden');
-                btn.textContent = "修行し直す";
+                btn.textContent = "再挑戦する";
                 btn.className = "w-full py-5 bg-slate-700 text-white rounded-2xl font-black text-xl";
                 btn.onclick = () => location.reload();
             }
